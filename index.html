@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrudCore</title>
+    <style>
+        p{
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <p><br></p>
+    <p><br></p>
+    <p>CRUD Operation using Asp.net core 6.0 by Datbase First Approach</p>
+    <p>---------------------------------------------------------------</p>
+    <p><br></p>
+    <p>create database KishanMacheTest_db</p>
+    <p><br></p>
+    <p>use KishanMacheTest_db</p>
+    <p><br></p>
+    <p>create table Student(</p>
+    <p>Id int primary key identity(1,1),</p>
+    <p>Name nvarchar(100),</p>
+    <p>Departnment nvarchar(20),</p>
+    <p>RollNo int,</p>
+    <p>FatherName nvarchar(100),</p>
+    <p>City nvarchar(100),</p>
+    <p>State nvarchar(100)</p>
+    <p>)</p>
+    <p><br></p>
+    <p>select * from student</p>
+    <p><br></p>
+    <p>create proc [dbo].[AddStudent] (</p>
+    <p>@Name nvarchar(100),</p>
+    <p>@Departnment nvarchar(20),</p>
+    <p>@RollNo int,</p>
+    <p>@FatherName nvarchar(100),</p>
+    <p>@City nvarchar(100),</p>
+    <p>@State nvarchar(100)</p>
+    <p>)</p>
+    <p>as&nbsp;</p>
+    <p>begin</p>
+    <p>&nbsp;if not exists(select 1 from student where Name= @Name)</p>
+    <p>&nbsp;begin</p>
+    <p><span style="white-space: normal;"><span style="white-space:pre"> </span>insert into
+            student(Name,Departnment,RollNo,FatherName,City,State)
+            values(@Name,@Departnment,@RollNo,@FatherName,@City,@State)</span></p>
+    <p>&nbsp;end</p>
+    <p>end</p>
+    <p><br></p>
+    <p>create proc [dbo].[GetallStudent]</p>
+    <p>as</p>
+    <p>&nbsp;begin</p>
+    <p>select * from student</p>
+    <p>end</p>
+    <p><br></p>
+    <p>=&gt; After Database Design create a .net Core Apllication&nbsp;</p>
+    <p>&nbsp; &nbsp;----------------------------------------------------</p>
+    <p>&nbsp; &nbsp; &nbsp;Need to Install Three NuGet Packages</p>
+    <p><span style="white-space: normal;"><span style="white-space:pre"> </span>1) Dapper</span></p>
+    <p><span style="white-space: normal;"><span style="white-space:pre"> </span>2) Microsoft.EntityFrameworkCore</span>
+    </p>
+    <p><span style="white-space: normal;"><span style="white-space:pre"> </span>3)
+            Microsoft.EntityFrameworkCore.SqlServer</span></p>
+    <p><br></p>
+    <p>=&gt; Create A new Folder Named AplicatioDbContext</p>
+    <p>&nbsp; &nbsp;--------------------------------------------</p>
+    <p>using Microsoft.EntityFrameworkCore;</p>
+    <p><br></p>
+    <p>namespace KishanMachinetest.Data</p>
+    <p>{</p>
+    <p>&nbsp; &nbsp; public class AplicatioDbContext :DbContext</p>
+    <p>&nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public
+        AplicatioDbContext(DbContextOptions&lt;AplicatioDbContext&gt;options):base(options)&nbsp;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; }</p>
+    <p>}</p>
+    <p><br></p>
+    <p>=&gt; Create A New Folder For Dapper Service Uisng Repo. Pattern</p>
+    <p>&nbsp; -----------------------------------------------------------</p>
+    <p><br></p>
+    <p>&nbsp;-&gt; Create a foled named IRepo and an Interface named IDapperService</p>
+    <p><br></p>
+    <p>using Dapper;</p>
+    <p>using System.Data;</p>
+    <p><br></p>
+    <p>namespace KishanMachinetest.DapperService.IRepo</p>
+    <p>{</p>
+    <p>&nbsp; &nbsp; public interface IDapperService : IDisposable</p>
+    <p>&nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; T Get &lt;T&gt; ( string sp,DynamicParameters dynamicParameters ,CommandType
+        commandType = CommandType.StoredProcedure);</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; List&lt;T&gt; GetAll&lt;T&gt;(string sp, DynamicParameters dynamicParameters,
+        CommandType commandType = CommandType.StoredProcedure);</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; int ExecuteScaler &lt;T&gt;(string sp, DynamicParameters dynamicParameters,
+        CommandType commandType = CommandType.StoredProcedure);</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; }</p>
+    <p>}</p>
+    <p><br></p>
+    <p>-&gt; Create a foled named Repo and an Class named DapperService</p>
+    <p>using Dapper;</p>
+    <p>using KishanMachinetest.DapperService.IRepo;</p>
+    <p>using KishanMachinetest.Data;</p>
+    <p>using Microsoft.Data.SqlClient;</p>
+    <p>using Microsoft.EntityFrameworkCore;</p>
+    <p>using System.Data;</p>
+    <p><br></p>
+    <p>namespace KishanMachinetest.DapperService.Repo</p>
+    <p>{</p>
+    <p>&nbsp; &nbsp; public class DapperService : IDapperService</p>
+    <p>&nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; private readonly AplicatioDbContext _db;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; private&nbsp; static string connetionString = "";</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public DapperService(AplicatioDbContext db)</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; _db = db;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; connetionString = db.Database.GetDbConnection().ConnectionString;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public void Dispose()</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; _db.Dispose();</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public int ExecuteScaler&lt;T&gt;(string sp, DynamicParameters dynamicParameters,
+        CommandType commandType = CommandType.StoredProcedure)</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; using (SqlConnection sqlCon = new SqlConnection(connetionString))</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; sqlCon.Open();</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return sqlCon.Execute(sp, dynamicParameters, commandType:
+        commandType);</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public T Get&lt;T&gt;(string sp, DynamicParameters dynamicParameters, CommandType
+        commandType = CommandType.StoredProcedure)</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; using (SqlConnection sqlCon = new SqlConnection(connetionString))</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; sqlCon.Open();</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return sqlCon.Query&lt;T&gt;(sp, dynamicParameters,
+        commandType: commandType).FirstOrDefault();</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public List&lt;T&gt; GetAll&lt;T&gt;(string sp, DynamicParameters dynamicParameters,
+        CommandType commandType = CommandType.StoredProcedure)</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; using (SqlConnection sqlCon = new SqlConnection(connetionString))</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; sqlCon.Open();</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return sqlCon.Query&lt;T&gt;(sp, dynamicParameters,
+        commandType: commandType).ToList();</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+    <p>&nbsp; &nbsp; }</p>
+    <p>}</p>
+    <p><br></p>
+    <p>=&gt; Make ConnectionString in Appsetting.json page&nbsp;</p>
+    <p>&nbsp; &nbsp;--------------------------------------------</p>
+    <p>{</p>
+    <p>&nbsp; "Logging": {</p>
+    <p>&nbsp; &nbsp; "LogLevel": {</p>
+    <p>&nbsp; &nbsp; &nbsp; "Default": "Information",</p>
+    <p>&nbsp; &nbsp; &nbsp; "Microsoft.AspNetCore": "Warning"</p>
+    <p>&nbsp; &nbsp; }</p>
+    <p>&nbsp; },</p>
+    <p>&nbsp; "AllowedHosts": "*",</p>
+    <p>&nbsp; "ConnectionStrings": {</p>
+    <p>&nbsp; &nbsp; "DefaultConnection": "server=.;Database=KishanMacheTest_db;Trusted_Connection=True;"</p>
+    <p>&nbsp; }</p>
+    <p><br></p>
+    <p>}</p>
+    <p><br></p>
+    <p>=&gt; register Connection String and service&nbsp;</p>
+    <p>&nbsp; &nbsp;--------------------------------------</p>
+    <p>builder.Services.AddControllersWithViews();</p>
+    <p>--&gt;</p>
+    <p>builder.Services.AddScoped&lt;IDapperService, DapperService&gt;();</p>
+    <p><br></p>
+    <p>builder.Services.AddDbContext&lt;AplicatioDbContext&gt;(options =&gt;</p>
+    <p>{</p>
+    <p>&nbsp; &nbsp; options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));</p>
+    <p>});</p>
+    <p>--&gt;</p>
+    <p>var app = builder.Build();</p>
+    <p><br></p>
+    <p><br></p>
+    <p>=&gt;After completing this code Connection Created Succesfully&nbsp;</p>
+    <p>&nbsp; ---------------------------------------------------------</p>
+    <p>&nbsp; ---------------------------------------------------------</p>
+    <p><br></p>
+    <p>View the data From the Database</p>
+    <p><br></p>
+    <p>Need to create A model Studentinfo</p>
+    <p>---------------------------------</p>
+    <p>namespace KishanMachinetest.Models</p>
+    <p>{</p>
+    <p>&nbsp; &nbsp; public class Studentinfo</p>
+    <p>&nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public int Id { get; set; }</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public string Name { get; set; }</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public string Departnment { get; set; }</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public int RollNo { get; set; }</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public string FatherName { get; set; }</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public string City { get; set; }</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public string State { get; set; }</p>
+    <p>&nbsp; &nbsp; }</p>
+    <p>}</p>
+    <p><br></p>
+    <p>Create a logic page for reterive data named HomeLogic.cs</p>
+    <p>--------------------------------------------------------</p>
+    <p><br></p>
+    <p>using Dapper;</p>
+    <p>using KishanMachinetest.DapperService.IRepo;</p>
+    <p>using KishanMachinetest.Models;</p>
+    <p><br></p>
+    <p>namespace KishanMachinetest.BL</p>
+    <p>{</p>
+    <p>&nbsp; &nbsp; public class HomeLogic</p>
+    <p>&nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public readonly IDapperService _db;</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public HomeLogic(IDapperService db)</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; _db = db;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public List&lt;Studentinfo&gt; GetStudentinfo()</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; var deviceJSONDatas = new List&lt;Studentinfo&gt;();</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; DynamicParameters parameter = new DynamicParameters();</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; var datalist = _db.GetAll&lt;Studentinfo&gt;("GetallStudent",
+        parameter);</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return datalist;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+    <p>&nbsp; &nbsp; }</p>
+    <p>}</p>
+    <p><br></p>
+    <p>Home Controller Code to Get the data</p>
+    <p>------------------------------------</p>
+    <p><br></p>
+    <p>using KishanMachinetest.DapperService.IRepo;</p>
+    <p>using KishanMachinetest.Models;</p>
+    <p>using Microsoft.AspNetCore.Mvc;</p>
+    <p>using System.Diagnostics;</p>
+    <p>using KishanMachinetest.BL;</p>
+    <p><br></p>
+    <p>namespace KishanMachinetest.Controllers</p>
+    <p>{</p>
+    <p>&nbsp; &nbsp; public class HomeController : Controller</p>
+    <p>&nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; private readonly ILogger&lt;HomeController&gt; _logger;</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public readonly IDapperService _db;</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; &nbsp;&nbsp;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public HomeController(ILogger&lt;HomeController&gt; logger, IDapperService db)</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; _logger = logger;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; _db = db;</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public IActionResult Index()</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; BL.HomeLogic logic = new BL.HomeLogic(_db);</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; List&lt;Studentinfo&gt; students = new List&lt;Studentinfo&gt;();</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; students = logic.GetStudentinfo();</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return View(students);</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public IActionResult Privacy()</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return View();</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+    <p><br></p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    </p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; public IActionResult Error()</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return View(new ErrorViewModel { RequestId = Activity.Current?.Id ??
+        HttpContext.TraceIdentifier });</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+    <p>&nbsp; &nbsp; }</p>
+    <p>}</p>
+    <p><br></p>
+    <p><br></p>
+    <p>Index.cshtml to view the page&nbsp;</p>
+    <p>-----------------------------</p>
+    <p>@model List&lt;KishanMachinetest.Models.Studentinfo&gt;;</p>
+    <p><br></p>
+    <p>@{</p>
+    <p>&nbsp; &nbsp; ViewData["Title"] = "Home Page";</p>
+    <p>}</p>
+    <p><br></p>
+    <p>&lt;div class="text-center"&gt;</p>
+    <p>&nbsp; &nbsp; &lt;h1 class="display-4"&gt;Welcome&lt;/h1&gt;</p>
+    <p>&nbsp; &nbsp; &lt;p&gt;Learn about &lt;a href="https://docs.microsoft.com/aspnet/core"&gt;building Web apps with
+        ASP.NET Core&lt;/a&gt;.&lt;/p&gt;</p>
+    <p>&lt;/div&gt;</p>
+    <p>&lt;table&gt;</p>
+    <p>&nbsp; &nbsp; @foreach(var data in Model)</p>
+    <p>&nbsp; &nbsp; {</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &lt;tr&gt;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &lt;td&gt;@data.Name&lt;/td&gt;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &lt;td&gt;@data.Departnment&lt;/td&gt;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &lt;td&gt;@data.RollNo&lt;/td&gt;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &lt;td&gt;@data.FatherName&lt;/td&gt;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &lt;td&gt;@data.City&lt;/td&gt;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &lt;td&gt;@data.State&lt;/td&gt;</p>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; &lt;/tr&gt;</p>
+    <p>&nbsp; &nbsp; }</p>
+    <p>&lt;/table&gt;</p>
+    <p><br></p>
+    <p><br></p>
+    <p><br></p>
+</body>
+
+</html>
